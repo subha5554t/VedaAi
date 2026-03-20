@@ -76,8 +76,11 @@ export default function AssignmentDetailPage() {
       toast.success('Regenerating question paper...');
       // Restart polling
       pollingRef.current = setInterval(async () => {
-        await fetchAssignment(id);
-      }, 3000);
+  try {
+    const { data } = await api.get(`/assignments/${id}?t=${Date.now()}`);
+    useAssignmentStore.getState().setCurrentAssignment(data.data);
+  } catch {}
+}, 3000);
     } catch {
       toast.error('Failed to regenerate. Please try again.');
     } finally {
