@@ -1,0 +1,187 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-orange: #E8520A;
+  --color-orange-dark: #C44508;
+  --color-bg: #F5F5F5;
+  --color-sidebar: #FFFFFF;
+  --color-card: #FFFFFF;
+  --color-border: #E5E7EB;
+  --color-text: #111827;
+  --color-text-secondary: #6B7280;
+  --color-text-muted: #9CA3AF;
+  --color-header: #FFFFFF;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* Sidebar active item */
+.sidebar-item-active {
+  background-color: #F5F5F5;
+  color: #111827;
+  font-weight: 500;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(232, 82, 10, 0.3); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(232, 82, 10, 0); }
+  100% { transform: scale(0.95); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.2s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.15s ease-out;
+}
+
+/* Step progress bar */
+.step-bar-active {
+  background-color: var(--color-orange);
+}
+
+.step-bar-inactive {
+  background-color: #E5E7EB;
+}
+
+/* Drag & drop zone */
+.dropzone-active {
+  border-color: var(--color-orange) !important;
+  background-color: #FFF7ED !important;
+}
+
+/* Print styles for question paper */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    background: white;
+    font-size: 12pt;
+  }
+
+  .question-paper {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+}
+
+/* Loading skeleton */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Badge styles */
+.badge-easy {
+  background-color: #DCFCE7;
+  color: #166534;
+}
+
+.badge-medium {
+  background-color: #FEF9C3;
+  color: #854D0E;
+}
+
+.badge-hard {
+  background-color: #FEE2E2;
+  color: #991B1B;
+}
+
+/* Mobile bottom nav */
+.mobile-nav-active {
+  color: var(--color-orange);
+}
+
+/* Transitions */
+.transition-smooth {
+  transition: all 0.2s ease;
+}
+
+/* Input focus styles */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--color-orange);
+  box-shadow: 0 0 0 2px rgba(232, 82, 10, 0.1);
+}
+
+/* Number input - remove arrows */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
