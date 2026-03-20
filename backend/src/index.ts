@@ -14,27 +14,16 @@ import assignmentRoutes from './routes/assignments';
 const app = express();
 const server = http.createServer(app);
 
-// ─── CORS ────────────────────────────────────────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow all origins in production for now
       if (!origin) return callback(null, true);
-      if (
-        origin.includes('localhost') ||
-        origin.includes('vercel.app') ||
-        origin.includes('onrender.com') ||
-        origin === (process.env.FRONTEND_URL || '')
-      ) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Allow all
-      }
+      callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma'],
   })
 );
 app.use(express.json({ limit: '10mb' }));
@@ -42,12 +31,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-// ─── Socket.IO ────────────────────────────────────────────────────────────────
 const io = new SocketIOServer(server, {
-  cors: {
-    origin: '*',
-    credentials: false,
-  },
+  cors: { origin: '*', credentials: false },
   transports: ['websocket', 'polling'],
 });
 
@@ -55,13 +40,13 @@ io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
   socket.on('subscribe:assignment', ({ assignmentId }: { assignmentId: string }) => {
     socket.join(`assignment:${assignmentId}`);
+    console.log(`Socket ${socket.id} joined room: assignment:${assignmentId}`);
   });
   socket.on('disconnect', () => {
     console.log(`Socket disconnected: ${socket.id}`);
   });
 });
 
-// ─── Internal notify endpoint for worker ─────────────────────────────────────
 app.post('/api/internal/notify', (req, res) => {
   const { assignmentId, status, progress } = req.body;
   io.to(`assignment:${assignmentId}`).emit('job:update', { assignmentId, status, progress });
@@ -69,7 +54,6 @@ app.post('/api/internal/notify', (req, res) => {
   res.json({ ok: true });
 });
 
-// ─── Redis Pub/Sub ────────────────────────────────────────────────────────────
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const isTLS = redisUrl.startsWith('rediss://');
 
@@ -97,9 +81,7 @@ redisSub.on('message', (channel, message) => {
 
 redisSub.on('error', (err) => console.warn('Redis error:', err.message));
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/assignments', assignmentRoutes);
-
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 app.use((req, res) => {
@@ -111,7 +93,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(err.status || 500).json({ success: false, message: err.message });
 });
 
-// ─── Start Server ─────────────────────────────────────────────────────────────
 async function start() {
   const PORT = parseInt(process.env.PORT || '5000');
   try {
@@ -128,7 +109,6 @@ async function start() {
 
 start().catch(console.error);
 
-// ─── Auto-start Worker ────────────────────────────────────────────────────────
 import('./workers/questionWorker').then(() => {
   console.log('🔧 Worker started in same process');
 }).catch((err) => {

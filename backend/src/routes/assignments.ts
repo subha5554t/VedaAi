@@ -24,23 +24,24 @@ const upload = multer({
   fileFilter: (_, file, cb) => {
     const allowed = /jpeg|jpg|png|pdf/;
     const ext = allowed.test(path.extname(file.originalname).toLowerCase());
-    const mime = /jpeg|jpg|png|pdf/.test(file.mimetype);
-    if (ext || mime) cb(null, true);
+    if (ext) cb(null, true);
     else cb(new Error('Only JPEG, PNG, PDF files are allowed'));
   },
 });
 
+const noCache = (res: Response) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+};
+
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const cached = await cacheGet<any[]>('assignments:list');
-    if (cached) return res.json({ success: true, data: cached });
-
+    noCache(res);
     const assignments = await Assignment.find()
       .sort({ createdAt: -1 })
       .select('-result')
       .lean();
-
-    await cacheSet('assignments:list', assignments, 60);
     res.json({ success: true, data: assignments });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -49,14 +50,12 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.get('/:id', async (req: Request, res: Response) => {
   try {
+    noCache(res);
     const { id } = req.params;
-
-    // Always fetch fresh from DB - no cache for pending/processing
     const assignment = await Assignment.findById(id).lean();
     if (!assignment) {
       return res.status(404).json({ success: false, message: 'Assignment not found' });
     }
-
     res.json({ success: true, data: assignment });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -77,26 +76,13 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
     let questionTypes: any[] = [];
     try {
       const raw = req.body.questionTypes;
-      if (typeof raw === 'string') {
-        questionTypes = JSON.parse(raw);
-      } else if (Array.isArray(raw)) {
-        questionTypes = raw;
-      }
+      questionTypes = typeof raw === 'string' ? JSON.parse(raw) : raw;
     } catch (e) {
       return res.status(400).json({ success: false, message: 'Invalid questionTypes format' });
     }
 
-    if (!questionTypes.length) {
-      return res.status(400).json({ success: false, message: 'At least one question type is required' });
-    }
-
-    for (const qt of questionTypes) {
-      if (!qt.type || qt.numberOfQuestions < 1 || qt.marks < 1) {
-        return res.status(400).json({
-          success: false,
-          message: 'Each question type must have valid type, numberOfQuestions >= 1, and marks >= 1',
-        });
-      }
+    if (!questionTypes || !questionTypes.length) {
+      return res.status(400).json({ success: false, message: 'At least one question type required' });
     }
 
     const assignment = await Assignment.create({
@@ -129,6 +115,7 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
     await Assignment.findByIdAndUpdate(assignment._id, { jobId: job.id });
     await cacheDel('assignments:list');
 
+    noCache(res);
     res.status(201).json({
       success: true,
       data: assignment.toJSON(),
@@ -143,18 +130,15 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
 router.post('/:id/regenerate', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-
     const assignment = await Assignment.findById(id);
     if (!assignment) {
-      return res.status(404).json({ success: false, message: 'Assignment not found' });
+      return res.status(404).json({ success: false, message: 'Not found' });
     }
-
     await Assignment.findByIdAndUpdate(id, {
       status: 'pending',
       result: undefined,
       errorMessage: undefined,
     });
-
     const job = await questionQueue.add('generate-questions', {
       assignmentId: id,
       title: assignment.title,
@@ -164,11 +148,9 @@ router.post('/:id/regenerate', async (req: Request, res: Response) => {
       questionTypes: assignment.questionTypes,
       additionalInstructions: assignment.additionalInstructions,
     });
-
     await Assignment.findByIdAndUpdate(id, { jobId: job.id });
     await cacheDel(`assignment:${id}`);
     await cacheDel('assignments:list');
-
     res.json({ success: true, jobId: job.id });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -178,21 +160,17 @@ router.post('/:id/regenerate', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-
     const assignment = await Assignment.findByIdAndDelete(id);
     if (!assignment) {
-      return res.status(404).json({ success: false, message: 'Assignment not found' });
+      return res.status(404).json({ success: false, message: 'Not found' });
     }
-
     await cacheDel(`assignment:${id}`);
     await cacheDel('assignments:list');
-
     if (assignment.fileUrl) {
       const filePath = path.join(process.cwd(), assignment.fileUrl);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
-
-    res.json({ success: true, message: 'Assignment deleted' });
+    res.json({ success: true, message: 'Deleted' });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }

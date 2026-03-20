@@ -7,6 +7,11 @@ import { Toaster } from 'react-hot-toast';
 export const metadata: Metadata = {
   title: 'VedaAI – AI Assessment Creator',
   description: 'AI-powered assessment and academic intelligence system',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
@@ -16,15 +21,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet"
-  />
-</head>
       <body className="bg-[#F5F5F5] min-h-screen">
         <div className="flex min-h-screen">
           <Sidebar />

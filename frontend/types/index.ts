@@ -19,6 +19,36 @@ export interface QuestionTypeConfig {
   marks: number;
 }
 
+export interface Question {
+  id: string;
+  text: string;
+  difficulty: Difficulty;
+  marks: number;
+  type: string;
+  options?: string[];
+  answer?: string;
+}
+
+export interface Section {
+  id: string;
+  title: string;
+  instruction: string;
+  questions: Question[];
+  totalMarks: number;
+}
+
+export interface QuestionPaper {
+  schoolName: string;
+  subject: string;
+  grade: string;
+  timeAllowed: string;
+  maximumMarks: number;
+  date: string;
+  sections: Section[];
+  totalQuestions: number;
+  totalMarks: number;
+}
+
 export interface Assignment {
   _id: string;
   title: string;
@@ -36,37 +66,6 @@ export interface Assignment {
   updatedAt: string;
 }
 
-export interface Question {
-  id: string;
-  text: string;
-  difficulty: Difficulty;
-  marks: number;
-  type: QuestionType;
-  options?: string[]; // for MCQ
-  answer?: string;
-}
-
-export interface Section {
-  id: string;
-  title: string; // e.g., "Section A"
-  instruction: string; // e.g., "Attempt all questions"
-  questions: Question[];
-  totalMarks: number;
-}
-
-export interface QuestionPaper {
-  schoolName: string;
-  subject: string;
-  grade: string;
-  timeAllowed: string;
-  maximumMarks: number;
-  date: string;
-  sections: Section[];
-  totalQuestions: number;
-  totalMarks: number;
-}
-
-// Store types
 export interface AssignmentStore {
   assignments: Assignment[];
   currentAssignment: Assignment | null;
@@ -93,7 +92,6 @@ export interface CreateAssignmentPayload {
   file?: File;
 }
 
-// Form step state
 export interface AssignmentFormState {
   step: number;
   title: string;
@@ -107,7 +105,6 @@ export interface AssignmentFormState {
   additionalInstructions: string;
 }
 
-// WebSocket event types
 export interface WSJobUpdate {
   assignmentId: string;
   status: 'queued' | 'processing' | 'completed' | 'failed';
