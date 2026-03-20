@@ -51,18 +51,10 @@ router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const cached = await cacheGet<any>(`assignment:${id}`);
-    if (cached && cached.status === 'completed') {
-      return res.json({ success: true, data: cached });
-    }
-
+    // Always fetch fresh from DB - no cache for pending/processing
     const assignment = await Assignment.findById(id).lean();
     if (!assignment) {
       return res.status(404).json({ success: false, message: 'Assignment not found' });
-    }
-
-    if (assignment.status === 'completed') {
-      await cacheSet(`assignment:${id}`, assignment, 3600);
     }
 
     res.json({ success: true, data: assignment });
