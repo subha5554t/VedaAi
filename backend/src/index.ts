@@ -108,4 +108,12 @@ async function start() {
 }
 
 start().catch(console.error);
+
+// Auto-start worker in same process for single-server deployment
+import('./workers/questionWorker').then(() => {
+  console.log('🔧 Worker started in same process');
+}).catch((err) => {
+  console.error('Worker failed to start:', err);
+});
+
 export { io };
