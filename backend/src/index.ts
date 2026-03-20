@@ -7,35 +7,46 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
 import mongoose from 'mongoose';
+import IORedis from 'ioredis';
 
 import assignmentRoutes from './routes/assignments';
 
 const app = express();
 const server = http.createServer(app);
 
-// Internal notify endpoint for worker
-app.post('/api/internal/notify', (req, res) => {
-  const { assignmentId, status, progress } = req.body;
-  io.to(`assignment:${assignmentId}`).emit('job:update', { assignmentId, status, progress });
-  io.emit('job:update', { assignmentId, status, progress });
-  res.json({ ok: true });
-});
-
+// ─── CORS ────────────────────────────────────────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: false }));
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow all origins in production for now
+      if (!origin) return callback(null, true);
+      if (
+        origin.includes('localhost') ||
+        origin.includes('vercel.app') ||
+        origin.includes('onrender.com') ||
+        origin === (process.env.FRONTEND_URL || '')
+      ) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Allow all
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+// ─── Socket.IO ────────────────────────────────────────────────────────────────
 const io = new SocketIOServer(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true,
+    origin: '*',
+    credentials: false,
   },
   transports: ['websocket', 'polling'],
 });
@@ -50,20 +61,24 @@ io.on('connection', (socket) => {
   });
 });
 
-// Redis pub/sub for job updates from worker
+// ─── Internal notify endpoint for worker ─────────────────────────────────────
+app.post('/api/internal/notify', (req, res) => {
+  const { assignmentId, status, progress } = req.body;
+  io.to(`assignment:${assignmentId}`).emit('job:update', { assignmentId, status, progress });
+  io.emit('job:update', { assignmentId, status, progress });
+  res.json({ ok: true });
+});
+
+// ─── Redis Pub/Sub ────────────────────────────────────────────────────────────
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const isTLS = redisUrl.startsWith('rediss://');
 
-import IORedis from 'ioredis';
-const redisSub = new IORedis({
-  host: 'unique-ibex-78493.upstash.io',
-  port: 6379,
-  password: 'gQAAAAAAATKdAAIncDFlZTEzMTBhZDNlZTY0OTA0ODBhYmZhNzhjODY4MTMzZXAxNzg0OTM',
-  tls: {},
+const redisSub = new IORedis(redisUrl, {
+  tls: isTLS ? {} : undefined,
   enableReadyCheck: false,
   maxRetriesPerRequest: null,
   retryStrategy: (times: number) => Math.min(times * 500, 2000),
-});
+} as any);
 
 redisSub.subscribe('job:update', (err) => {
   if (err) console.error('Redis subscribe error:', err);
@@ -82,17 +97,21 @@ redisSub.on('message', (channel, message) => {
 
 redisSub.on('error', (err) => console.warn('Redis error:', err.message));
 
+// ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/assignments', assignmentRoutes);
-app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
+
+app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.path} not found` });
 });
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled error:', err);
   res.status(err.status || 500).json({ success: false, message: err.message });
 });
 
+// ─── Start Server ─────────────────────────────────────────────────────────────
 async function start() {
   const PORT = parseInt(process.env.PORT || '5000');
   try {
@@ -109,7 +128,7 @@ async function start() {
 
 start().catch(console.error);
 
-// Auto-start worker in same process for single-server deployment
+// ─── Auto-start Worker ────────────────────────────────────────────────────────
 import('./workers/questionWorker').then(() => {
   console.log('🔧 Worker started in same process');
 }).catch((err) => {
