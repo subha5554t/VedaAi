@@ -19,16 +19,32 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const baseUrl = apiUrl.replace('/api', '');
+
   return (
     <html lang="en">
       <body className="bg-[#F5F5F5] min-h-screen">
+        {/* Wake up Render backend on page load */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                fetch('${baseUrl}/api/health', { method: 'GET' }).catch(function(){});
+              } catch(e) {}
+            `,
+          }}
+        />
+
         <div className="flex min-h-screen">
           <Sidebar />
           <div className="flex-1 flex flex-col min-h-screen lg:min-h-0 overflow-hidden">
             {children}
           </div>
         </div>
+
         <MobileNav />
+
         <Toaster
           position="top-right"
           toastOptions={{
