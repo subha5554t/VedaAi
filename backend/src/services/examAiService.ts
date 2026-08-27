@@ -13,9 +13,11 @@ export async function extractQuestionsFromImages(
 ): Promise<IExtractedQuestion[]> {
   const imageParts: Part[] = pageBase64Images
     .filter(Boolean)
-    .map((b64) => ({
-      inlineData: { mimeType: 'image/png' as const, data: b64 },
-    }));
+    .map((b64) => {
+      // Intelligently detect image format from Base64 magic bytes (JPEG starts with /9j/, PNG starts with iVBORw0K)
+      const mimeType = b64.startsWith('/9j/') ? 'image/jpeg' : 'image/png';
+      return { inlineData: { mimeType, data: b64 } };
+    });
 
   const prompt = `You are an expert OCR AI system specialized in educational assessment extraction.
 Your task is to analyze the provided question paper image and extract ALL questions in exact chronological order.
@@ -84,8 +86,9 @@ export async function mapAnswersFromImages(
     const b64 = answerPageBase64Images[pageIndex];
     if (!b64) continue;
 
+    const mimeType = b64.startsWith('/9j/') ? 'image/jpeg' : 'image/png';
     const imagePart: Part = {
-      inlineData: { mimeType: 'image/png' as const, data: b64 },
+      inlineData: { mimeType, data: b64 },
     };
 
     const prompt = `You are an expert AI vision system specialized in grading student handwritten answer sheets.
