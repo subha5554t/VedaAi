@@ -91,7 +91,7 @@ router.post(
         });
       }
 
-      const files = req.files as Record<string, Express.Multer.File[]>;
+      const files = req.files as Record<string, any[]>;
       const questionPaperFile = files?.['questionPaper']?.[0];
       const answerSheetFile = files?.['answerSheet']?.[0];
 
