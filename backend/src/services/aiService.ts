@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const aiModel = genAI.getGenerativeModel({ 
-  model: 'gemini-2.5-flash',
+  model: 'gemini-3.6-flash',
   systemInstruction: 'You are an expert teacher. You always respond with valid minified JSON only. No markdown, no explanation, no backticks — just raw JSON.'
 });
 

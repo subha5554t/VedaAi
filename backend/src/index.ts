@@ -16,6 +16,9 @@ import examRoutes from './routes/exams';
 const app = express();
 const server = http.createServer(app);
 
+// Trust Render's reverse proxy for express-rate-limit
+app.set('trust proxy', 1);
+
 // Security & Middleware
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(
@@ -130,6 +133,19 @@ app.get('/api/v1/health', (_, res) =>
 app.use('/api/assignments', (req, res) => res.redirect(308, `/api/v1/assignments${req.path}`));
 app.use('/api/exams', (req, res) => res.redirect(308, `/api/v1/exams${req.path}`));
 app.get('/api/health', (_, res) => res.redirect(308, '/api/v1/health'));
+
+// Internal endpoint for workers to trigger socket updates
+app.post('/api/internal/notify', (req, res) => {
+  const data = req.body;
+  if (data.examId) {
+    io.to(`exam:${data.examId}`).emit('job:update', data);
+    io.emit('job:update', data);
+  } else if (data.assignmentId) {
+    io.to(`assignment:${data.assignmentId}`).emit('job:update', data);
+    io.emit('job:update', data);
+  }
+  res.json({ success: true });
+});
 
 // Error Handlers
 app.use((req, res) => {

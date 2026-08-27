@@ -3,8 +3,8 @@ import { IExtractedQuestion, IMappedAnswer } from '../models/Exam';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-// Use Gemini 2.5 Flash — free tier, multimodal (reads images)
-const visionModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+// Use Gemini 3.6 Flash — free tier, multimodal (reads images)
+const visionModel = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 
 // ─── Step A: Extract Questions from Question Paper ────────────────────────────
 
