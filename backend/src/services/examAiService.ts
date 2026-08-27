@@ -147,15 +147,14 @@ IMPORTANT: Only include questions that are explicitly answered on THIS specific 
   return allAnswers;
 }
 
-// ─── Step C: Grade Answers + Generate Feedback (Groq — text only) ────────────
+// ─── Step C: Grade Answers + Generate Feedback (Gemini) ────────────
 
-export async function gradeAnswersWithGroq(
+export async function gradeAnswersWithGemini(
   questions: IExtractedQuestion[],
   answers: IMappedAnswer[]
 ): Promise<IMappedAnswer[]> {
   const gradedAnswers = [...answers];
 
-  // Batch questions for efficiency — grade up to 5 at a time
   const batchSize = 5;
   const answeredPairs = questions
     .map((q) => ({ q, a: answers.find((a) => a.questionId === q.id) }))
@@ -166,7 +165,7 @@ export async function gradeAnswersWithGroq(
     const batchInput = batch
       .map(
         ({ q, a }) =>
-          `Q_ID: ${q.id} | Question: "${q.text}" | Max Marks: ${q.marks || 'unspecified'} | Student Answer: "${a!.answerText}"`
+          `Q_ID: ${q.id} | Question: "${q.text}" | Max Marks: ${q.marks || '1'} | Student Answer: "${a!.answerText}"`
       )
       .join('\n\n');
 
@@ -178,7 +177,7 @@ ${batchInput}
 
 ### GRADING RULES
 1. Accuracy: Evaluate the student's answer against standard educational knowledge for the specific question.
-2. Scoring: Assign a \`score\` (number) up to the specified \`maxScore\`. You may assign partial marks if the answer is partially correct.
+2. Scoring: Assign a \`score\` (number) up to the specified \`maxScore\`. You may assign partial marks if the answer is partially correct. (If maxScore is 'unspecified', assume it is 1).
 3. Feedback: Provide constructive, encouraging, and clear feedback. Explain what the student did right and where they can improve.
 
 ### OUTPUT FORMAT
@@ -194,37 +193,11 @@ You MUST return ONLY a valid, minified JSON array matching the schema below. Do 
 ]`;
 
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'llama3-70b-8192',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert teacher. Respond with valid JSON only. No markdown, no backticks.',
-            },
-            { role: 'user', content: prompt },
-          ],
-          max_tokens: 2048,
-          temperature: 0.3,
-          response_format: { type: 'json_object' },
-        }),
-      });
+      const result = await visionModel.generateContent(prompt);
+      const text = result.response.text().trim();
+      const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
-      if (!response.ok) {
-        console.error('Groq grading error:', response.status);
-        continue;
-      }
-
-      const data = await response.json() as any;
-      const rawText = data.choices?.[0]?.message?.content || '[]';
-      const clean = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-
-      // Groq returns json_object — might be { grades: [...] } or directly [...]
+      // Parse JSON from Gemini
       let grades: any[] = [];
       const parsed = JSON.parse(clean);
       if (Array.isArray(parsed)) grades = parsed;

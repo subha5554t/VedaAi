@@ -8,7 +8,7 @@ import { pdfToBase64Images, getPdfPageCount } from '../lib/pdfUtils';
 import {
   extractQuestionsFromImages,
   mapAnswersFromImages,
-  gradeAnswersWithGroq,
+  gradeAnswersWithGemini,
 } from '../services/examAiService';
 
 const connectDB = async () => {
@@ -102,7 +102,7 @@ async function processExamJob(job: Job<ExamJobData>) {
 
     // Step 4: Grading + feedback
     console.log('Grading answers...');
-    const gradedAnswers = await gradeAnswersWithGroq(questions, rawAnswers);
+    const gradedAnswers = await gradeAnswersWithGemini(questions, rawAnswers);
 
     const totalScore = gradedAnswers.reduce((sum, a) => sum + (a.score || 0), 0);
     const totalMaxScore = gradedAnswers.reduce((sum, a) => sum + (a.maxScore || 0), 0);
