@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Users, FileText, Sparkles, BookOpen, Settings, Plus } from 'lucide-react';
+import { Home, Users, FileText, Sparkles, BookOpen, Settings, Plus, ClipboardCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import VedaAILogo from '@/components/ui/Logo';
 import { useAssignmentStore } from '@/store/assignmentStore';
@@ -13,6 +13,7 @@ const navItems = [
   { label: 'Home', icon: Home, href: '/', showCount: false },
   { label: 'My Groups', icon: Users, href: '/groups', showCount: false },
   { label: 'Assignments', icon: FileText, href: '/assignments', showCount: true },
+  { label: 'Exams', icon: ClipboardCheck, href: '/exams', showCount: false },
   { label: "AI Teacher's Toolkit", icon: Sparkles, href: '/toolkit', showCount: false },
   { label: 'My Library', icon: BookOpen, href: '/library', showCount: false },
 ];
@@ -34,6 +35,9 @@ export default function Sidebar() {
   const isActive = (href: string) => {
     if (href === '/assignments') {
       return pathname === '/assignments' || pathname.startsWith('/assignments/');
+    }
+    if (href === '/exams') {
+      return pathname === '/exams' || pathname.startsWith('/exams/');
     }
     return pathname === href;
   };

@@ -3,12 +3,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, BookOpen, Sparkles } from 'lucide-react';
+import { Home, Users, BookOpen, Sparkles, ClipboardCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const mobileNavItems = [
   { label: 'Home', icon: Home, href: '/' },
-  { label: 'My Groups', icon: Users, href: '/groups' },
+  { label: 'Assignments', icon: ClipboardCheck, href: '/assignments' },
+  { label: 'Exams', icon: ClipboardCheck, href: '/exams' },
   { label: 'Library', icon: BookOpen, href: '/library' },
   { label: 'AI Toolkit', icon: Sparkles, href: '/toolkit' },
 ];
