@@ -24,6 +24,20 @@ export const questionQueueEvents = new QueueEvents('question-generation', {
   connection,
 });
 
+export const examQueue = new Queue('exam-processing', {
+  connection,
+  defaultJobOptions: {
+    removeOnComplete: 100,
+    removeOnFail: 50,
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 2000 },
+  },
+});
+
+export const examQueueEvents = new QueueEvents('exam-processing', {
+  connection,
+});
+
 const memCache = new Map<string, { value: string; expires: number }>();
 
 export async function cacheGet<T>(key: string): Promise<T | null> {
