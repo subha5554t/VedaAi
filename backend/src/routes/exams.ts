@@ -203,7 +203,11 @@ router.get('/:id/page-image/:sheet/:page', async (req: Request, res: Response) =
       return res.status(500).json({ success: false, message: 'Failed to render page' });
     }
 
-    res.setHeader('Content-Type', 'image/png');
+    const ext = path.extname(imagePath).toLowerCase();
+    let mimeType = 'image/png';
+    if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
+    
+    res.setHeader('Content-Type', mimeType);
     res.setHeader('Cache-Control', 'public, max-age=86400'); // cache 24h
     res.sendFile(imagePath);
   } catch (err: any) {
