@@ -14,6 +14,11 @@ export async function pdfToBase64Images(pdfPath: string): Promise<string[]> {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
+  const ext = path.extname(pdfPath).toLowerCase();
+  if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') {
+    return [_fileToBase64(pdfPath)];
+  }
+
   const pageCount = await getPdfPageCount(pdfPath);
   if (pageCount === 0) throw new Error('PDF has no pages or could not be read');
 
@@ -45,7 +50,14 @@ export async function pdfToBase64Images(pdfPath: string): Promise<string[]> {
   // Cleanup temp directory
   try { fs.rmSync(outputDir, { recursive: true, force: true }); } catch {}
 
+  // Cleanup temp directory
+  try { fs.rmSync(outputDir, { recursive: true, force: true }); } catch {}
+
   return base64Images;
+}
+
+function _fileToBase64(filePath: string): string {
+  try { return fs.readFileSync(filePath).toString('base64'); } catch { return ''; }
 }
 
 /**
@@ -72,7 +84,15 @@ export async function savePdfPageAsPng(
     preserveAspectRatio: true,
   });
 
-  await convert(pageNumber, { responseType: 'image' });
+  const result = await convert(pageNumber, { responseType: 'image' });
+  
+  // pdf2pic forcefully appends `.pageNumber.png` (or sometimes `.png` natively). 
+  // We MUST rename it exactly to the requested `outputPath`.
+  if (result && result.path && result.path !== outputPath) {
+    if (fs.existsSync(result.path)) {
+      fs.renameSync(result.path, outputPath);
+    }
+  }
 }
 
 /**
@@ -122,6 +142,12 @@ export async function getOrGeneratePageImage(
 
   if (fs.existsSync(cachePath)) {
     return cachePath;
+  }
+
+  // If the uploaded file is ALREADY an image, simply serve it back instead of failing pdf conversions!
+  const ext = path.extname(pdfPath).toLowerCase();
+  if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') {
+    return pdfPath;
   }
 
   if (!fs.existsSync(cacheDir)) {
