@@ -1,39 +1,18 @@
 import { buildPrompt, parseAIResponse, GenerationInput } from './promptBuilder';
 import { IQuestionPaper } from '../models/Assignment';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const aiModel = genAI.getGenerativeModel({ 
+  model: 'gemini-1.5-flash',
+  systemInstruction: 'You are an expert teacher. You always respond with valid minified JSON only. No markdown, no explanation, no backticks — just raw JSON.'
+});
 
 async function generateWithGroq(prompt: string): Promise<string> {
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are an expert teacher. You always respond with valid JSON only. No markdown, no explanation, no backticks — just raw JSON.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      max_tokens: 4096,
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
-    }),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Groq API error ${response.status}: ${errText}`);
-  }
-
-  const data = await response.json();
-  return (data as any).choices?.[0]?.message?.content || '';
+  const result = await aiModel.generateContent(prompt);
+  let text = result.response.text().trim();
+  text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  return text;
 }
 
 export async function generateQuestionPaper(
@@ -41,12 +20,12 @@ export async function generateQuestionPaper(
 ): Promise<IQuestionPaper> {
   const prompt = buildPrompt(input);
 
-  console.log('🤖 Calling Groq llama-3.3-70b-versatile...');
+  console.log('Calling Groq LLM API...');
 
   let rawResponse = '';
   try {
     rawResponse = await generateWithGroq(prompt);
-    console.log('✅ Groq response received');
+    console.log('Groq response received');
   } catch (err: any) {
     console.error('Groq generation failed:', err.message);
     throw new Error(`AI generation failed: ${err.message}`);
